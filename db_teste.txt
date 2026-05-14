@@ -1,0 +1,103 @@
+# O código abaixo será para incluir dados no banco 
+from decimal import Decimal
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import session
+from database import SessionLocal, engine, Base
+from Entities.models import TipoCategoria, Categoria, Transacao, Despesa
+
+def reset_db():
+    # Se quiser garantir que o banco de dados esteja limpo, pode-se usar o código abaixo para apagar e criar as tabelas novamente
+    Base.metadata.create_all(bind=engine)
+
+def seed_and_test():
+    # Criar uma sessão para interagir com o banco de dados
+    session = SessionLocal()
+
+    try:
+        # Limpar o banco de dados antes de inserir os dados
+        session.query(Transacao).delete()
+        session.query(Despesa).delete()
+        session.query(Categoria).delete()
+        session.query(TipoCategoria).delete()
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+
+    session.close()
+
+    try:
+        # Criar uma sessão para interagir com o banco de dados
+        session = SessionLocal()
+
+        # 1) TipoCategoria, Categoria, Despesa
+        tipo = TipoCategoria(Descricao="Geral")
+        session.add(tipo); session.flush()
+        print("TipoCategoria:", [(t.id, t.Descricao) for t in session.scalars(select(TipoCategoria)).all()])
+
+        cat = Categoria(IdTipoCategoria=tipo.id, Descricao="Alimentação", Excluido=False)
+        session.add(cat); session.flush()
+        print("Categoria:", [(c.id, c.IdTipoCategoria, c.Descricao, c.Excluido) for c in session.scalars(select(Categoria)).all()])
+
+        desp = Despesa(IdCategoria=cat.id, Descricao="Supermercado do mês", DiaCobranca=5, Valor=Decimal("350.00"))
+        session.add(desp); session.flush()
+
+        # Pegue entidades ORM
+        cat_lida = cat
+        desp_lida = desp
+        session.commit()
+        # desp is already the added object
+
+        print("cat:", cat_lida.id, cat_lida.Descricao)
+        print("desp:", desp_lida.id, desp_lida.Descricao)
+
+        # 2) Transações válidas (XOR OK)
+        t1 = Transacao(
+            IdCategoria=cat_lida.id, # só categoria
+            Descricao="Compra teste",
+            Valor=Decimal("55.90"))
+        session.add(t1)
+        session.commit() # commit para gerar os IDs
+        print("Inseriu t1 - OK") 
+
+        t2 = Transacao( IdDespesa=desp_lida.id, # só despesa
+                        Descricao="Ajuste programa fidalidade",
+                        Valor=Decimal("10.00"))
+        session.add(t2)
+        session.commit()
+        print("Inseriu t1 e t2 - OK")
+
+        # 3) Transação invalida: nenhum FK (viola ck_at_least_one)
+        try:
+            inv1 = Transacao(Descricao="Inválida sem FKs", Valor=Decimal("1.00"))
+            session.add(inv1); session.flush()
+        except IntegrityError as e:
+            session.rollback()
+            print("Falha esperada nenhum FK", e.orig)
+
+        # 4) Transação invalida: dois FKs (viola ck_at_most_one)
+        try:
+            inv2 = Transacao(IdCategoria=cat.id, IdDespesa=desp.id, Descricao="Inválida invalida com dois FKs FKs", Valor=Decimal("2.00"))
+            session.add(inv2); session.flush()
+        except IntegrityError as e:
+            session.rollback()
+            print("Falha esperada dois FK", e.orig)
+
+        # 5) Consultar resultados
+        cats=session.scalars(select(Categoria)).all()
+        trans=session.scalars(select(Transacao)).all()
+        print("Categoria:", [(c.id, c.IdTipoCategoria, c.Descricao, c.Excluido) for c in cats])
+        print("Transações:", [(t.id, t.Descricao, t.IdCategoria, t.IdDespesa, str(t.Valor)) for t in trans])
+
+        # 6) Soft delete categoria (sem apagar dados)
+        cat.Excluido = True
+        session.add(cat)
+        session.commit()
+        print("Categoria após soft delete:", [(c.id, c.IdTipoCategoria, c.Descricao, c.Excluido) for c in session.scalars(select(Categoria)).all()])
+    finally:
+        session.close()
+
+if __name__ == "__main__":
+    reset_db() # Chamar a função para resetar o banco de dados
+    seed_and_test() # Chamar a função para inserir os dados e testar as relações entre as tabelas
