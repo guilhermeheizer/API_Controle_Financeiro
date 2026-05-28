@@ -23,7 +23,7 @@ def create_categoria(categoria: CategoriaCreate, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Erro interno do servidor: " + str(e))
     
-@router.put("", response_model=CategoriaOut)
+@router.put("/", response_model=CategoriaOut)
 def update_categoria(categoria: CategoriaUpdate, db: Session = Depends(get_db)):
     try:
         dto = _service.update(db, categoria)

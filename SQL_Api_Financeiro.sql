@@ -19,6 +19,9 @@ UPDATE public."TipoCategoria"
 select *
 From public."Categoria";
 
+select *
+From public."Despesa";
+
 UPDATE "Categoria" 
 	SET "IdTipoCategoria"=(IdTipoCategoria), 
 	"Descricao"=(Descricao) 

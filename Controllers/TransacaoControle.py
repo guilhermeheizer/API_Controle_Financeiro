@@ -23,7 +23,7 @@ def create_transacao(transacao: TransacaoCreate, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Erro interno do servidor: " + str(e))
     
-@router.put("", response_model=TransacaoOut)
+@router.put("/", response_model=TransacaoOut)
 def update_transacao(transacao: TransacaoUpdate, db: Session = Depends(get_db)):
     try:
         dto = _service.update(db, transacao)

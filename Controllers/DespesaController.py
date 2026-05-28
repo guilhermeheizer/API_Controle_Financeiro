@@ -23,7 +23,7 @@ def create_despesa(despesa: DespesaCreate, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Erro interno do servidor: " + str(e))
     
-@router.put("", response_model=DespesaOut)
+@router.put("/", response_model=DespesaOut)
 def update_despesa(despesa: DespesaUpdate, db: Session = Depends(get_db)):
     try:
         dto = _service.update(db, despesa)
