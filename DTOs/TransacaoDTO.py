@@ -1,35 +1,36 @@
-from pydantic import BaseModel, ConfigDict, PositiveInt, StringConstraints, field_validator, model_validator, condecimal
+from pydantic import BaseModel, ConfigDict, PositiveInt, field_validator, model_validator, condecimal
 from typing import Optional
-from typing_extensions import Annotated
-from  pydantic.types import StringConstraints
 from decimal import Decimal
 from datetime import datetime
+from pydantic_core import PydanticCustomError
 
 
 class TransacaoCreate(BaseModel):
     IdCategoria: Optional[PositiveInt] | None= None
     IdDespesa: Optional[PositiveInt] | None = None
-    Descricao: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
+    Descricao: str
     Valor: condecimal(max_digits=12, decimal_places=2, ge=Decimal("0"))
 
     @field_validator("Descricao")
     @classmethod
     def _descricao(cls, v: str) -> str:
         if not v.strip():
-            raise ValueError("A descrição é obrigatória.")
+            raise PydanticCustomError("Descrição obrigatória", "A descrição é obrigatória.")
+        if len(v) > 150:
+            raise PydanticCustomError("Máximo de caracteres", "A descrição deve ter no máximo 150 caracteres.")
         return v
 
     @field_validator("Valor")
     @classmethod
     def _valor(cls, v: Decimal) -> Decimal:
         if v < Decimal("0"):
-            raise ValueError("O valor não pode ser negativo.")
+            raise PydanticCustomError("Valor inválido", "O valor não pode ser negativo.")
         return v
     
     @model_validator(mode="after")
     def _xor_categoria_despesa(self) -> "TransacaoCreate":
         if(self.IdCategoria is None) == (self.IdDespesa is None):
-            raise ValueError("A transação deve estar associada a uma categoria ou a uma despesa, mas não ambas.")
+            raise PydanticCustomError("Categoria ou Despesa obrigatória", "A transação deve estar associada a uma categoria ou a uma despesa, mas não ambas.")
         return self
     
 class TransacaoUpdate(TransacaoCreate):

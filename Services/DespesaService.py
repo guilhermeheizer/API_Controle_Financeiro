@@ -1,6 +1,7 @@
 from Repositories.DespesaRepository import DespesaRepository
 from sqlalchemy.orm import Session
 from DTOs.DespesaDTO import DespesaCreate, DespesaUpdate, DespesaOut
+from DTOs.GraficoDTO import QuantidadeDespesaCategoria
 from typing import Optional, List
 from Entities.models import Despesa
 
@@ -9,8 +10,8 @@ class DespesaService:
     def __init__(self, repo: DespesaRepository):
         self.repo = repo
 
-    def create(self, db: Session, despesaCreate: DespesaCreate) -> Optional[DespesaOut]:
-        entity = Despesa(**despesaCreate.model_dump())
+    def create(self, db: Session, despesaCreate: DespesaCreate, user_id: int) -> Optional[DespesaOut]:
+        entity = Despesa(**despesaCreate.model_dump(), IdUsuario=user_id)
         despesaCriada = self.repo.create(db, entity)
         if not despesaCriada:
             raise ValueError("Erro ao criar a despesa.")
@@ -58,8 +59,8 @@ class DespesaService:
             "CategoriaDescricao": despesa.Categoria.Descricao if despesa.Categoria else None
         })
     
-    def get_all(self, db: Session) -> List[DespesaOut]:
-        despesas = self.repo.get_all(db)
+    def get_all(self, db: Session, idUsuario: int, despesaDeHoje: bool) -> List[DespesaOut]:
+        despesas = self.repo.get_all(db, idUsuario, despesaDeHoje)
         return [
             DespesaOut(
                 id=d.id,
@@ -71,3 +72,10 @@ class DespesaService:
             )
             for d in despesas
         ]
+    
+    def get_quantidade_despesas_por_categoria(self, db: Session, user_id: int) -> List[QuantidadeDespesaCategoria]:
+        quantidadeDespesasPorCategoriaDict = self.repo.get_quantidade_despesas_por_categoria(db, user_id)
+        return [QuantidadeDespesaCategoria(**item) for item in quantidadeDespesasPorCategoriaDict] # Jogando o resultado do dicionário mapeando para o DTO QuantidadeDespesaCategoria
+    
+    def usuario_has_despesa(self, db: Session, id_: int, idUsuario: int) -> bool:
+        return self.repo.usuario_has_despesa(db, id_, idUsuario)

@@ -5,12 +5,12 @@ from typing import Optional, List
 from Entities.models import Categoria
 
 
-class CategoriaServide:
+class CategoriaService:
     def __init__(self, repo: CategoriaRepository):
         self.repo = repo
 
-    def create(self, db: Session, categoriaCreate: CategoriaCreate) -> Optional[CategoriaOut]:
-        entity = Categoria(**categoriaCreate.model_dump())
+    def create(self, db: Session, categoriaCreate: CategoriaCreate, idUsuario: int) -> Optional[CategoriaOut]:
+        entity = Categoria(**categoriaCreate.model_dump(), IdUsuario=idUsuario)
         # Ler categoria por descricao para evitar duplicidade
         categoria_existente = self.repo.get_by_descricao(db, categoriaCreate.IdTipoCategoria, categoriaCreate.Descricao)
         if categoria_existente:
@@ -68,8 +68,8 @@ class CategoriaServide:
             "TipoCategoriaDescricao": categoria.TipoCategoria.Descricao if categoria.TipoCategoria else None
         })
     
-    def get_all(self, db: Session) -> List[CategoriaOut]:
-        categorias = self.repo.get_all(db)
+    def get_all(self, db: Session, idUsuario: int, idTipoCategoria: Optional[int]) -> List[CategoriaOut]:
+        categorias = self.repo.get_all(db, idUsuario, idTipoCategoria)
         return [
             CategoriaOut(
                 id=c.id,
@@ -79,3 +79,6 @@ class CategoriaServide:
             )
             for c in categorias
         ]
+    
+    def usuario_has_categoria(self, db: Session, id_: int, idUsuario: int) -> bool:
+        return self.repo.usuario_has_categoria(db, id_, idUsuario)

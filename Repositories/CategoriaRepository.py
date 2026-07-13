@@ -50,9 +50,11 @@ class CategoriaRepository:
         except SQLAlchemyError as e:
             raise RuntimeError("get: Erro ao buscar a categoria: " + str(e))
     
-    def get_all(self, db: Session) -> List[Categoria]:
+    def get_all(self, db: Session, idUsuario: int, idTipoCategoria: Optional[int]) -> List[Categoria]:
         try:
-            stmt = select(Categoria).where(Categoria.Excluido.is_(False)).order_by(Categoria.Descricao)
+            stmt = select(Categoria).where(Categoria.Excluido.is_(False), Categoria.IdUsuario == idUsuario).order_by(Categoria.Descricao)
+            if idTipoCategoria:
+                stmt = stmt.where(Categoria.IdTipoCategoria == idTipoCategoria)
             return list(db.scalars(stmt))
         except SQLAlchemyError as e:
             raise RuntimeError("get_all: Erro ao buscar todas categorias: " + str(e))
@@ -79,4 +81,11 @@ class CategoriaRepository:
                     ))
             return len(list(db.scalars(stmt)))
         except SQLAlchemyError as e:
-            raise RuntimeError("get_by_descricao_contar: Erro ao contar categorias por descrição: " + str(e))   
+            raise RuntimeError("get_by_descricao_contar: Erro ao contar categorias por descrição: " + str(e))
+
+    def usuario_has_categoria(self, db: Session, id_: int, idUsuario: int) -> bool:
+        try:
+            stmt = select(Categoria).where(Categoria.id == id_, Categoria.Excluido.is_(False), Categoria.IdUsuario == idUsuario)
+            return db.scalars(stmt).first() is not None
+        except SQLAlchemyError as e:
+            raise RuntimeError("get: Erro ao buscar a categoria: " + str(e)) 

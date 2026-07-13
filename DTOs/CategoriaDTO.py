@@ -1,17 +1,18 @@
 from pydantic import BaseModel, ConfigDict, PositiveInt, field_validator
-from typing_extensions import Annotated
-from  pydantic.types import StringConstraints
+from pydantic_core import PydanticCustomError
 
 
 class CategoriaCreate(BaseModel):
     IdTipoCategoria: PositiveInt
-    Descricao: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+    Descricao: str
 
     @field_validator("Descricao")
     @classmethod
     def _descricao(cls, v: str) -> str:
         if not v.strip():
-            raise ValueError("A descrição é obrigatória.")
+            raise PydanticCustomError("Descrição obrigatória", "A descrição é obrigatória.")
+        if len(v) > 50:
+            raise PydanticCustomError("Máximo de caracteres", "A descrição deve ter no máximo 50 caracteres.")
         return v
 
 class CategoriaUpdate(CategoriaCreate):

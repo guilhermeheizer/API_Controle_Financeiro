@@ -5,16 +5,15 @@ from Repositories.TipoCategoriaReposotory import TipoCategoriaRepository
 from sqlalchemy.orm import Session
 from database import get_db
 from typing import List
+from Utilities.dependecies import get_current_clains
+
 
 router = APIRouter(prefix="/tipo-categoria", tags=["TipoCategoria"])
 
 _service = TipoCategoriaServices(TipoCategoriaRepository())
 
 @router.get("/{id}", response_model=TipoCategoriaOut)
-def get_tipo_categoria(id: int, db: Session = Depends(get_db)):
-    print(f"Recebendo requisição para obter TipoCategoria com id: {id}")
-    print(f"Conexão com o banco de dados estabelecida: {db is not None}")
-
+def get_tipo_categoria(id: int, db: Session = Depends(get_db), clains: dict = Depends(get_current_clains)):
     try:
         dto = _service.get(db, id)
         return dto
@@ -27,7 +26,7 @@ def get_tipo_categoria(id: int, db: Session = Depends(get_db)):
     
     
 @router.get("/", response_model=List[TipoCategoriaOut])
-def list_tipo_categoria(db: Session = Depends(get_db)):
+def list_tipo_categoria(db: Session = Depends(get_db), clains: dict = Depends(get_current_clains)):
     try:
         return _service.get_all(db)
     except HTTPException as ex:
